@@ -7,6 +7,27 @@ output: github_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
 ```
 
 
+# Introduction
+
+### These data are from Change of Address (COAs) forms received by the United States Post Office in New York City between 2018 and 2022. It includes the total number of COAs to and from each NYC zip code for each month of those 5 years.  These COAs are filed by people who are moving to ensure that mail is delivered to their new address.
+
+In each sheet, the TOTAL PERM IN and TOTAL PERM OUT indicate the total number of permanent address changes going into and out of each ZIP code.
+
+NYC is divided into five boroughs. Each of these boroughs is it’s own county, and in some cases the borough name and county name differ; for example, Manhattan is New York County. Moreover, boroughs are divided into neighborhoods. COA data provided by USPS may not accurately reflect NYC’s counties, boroughs, and neighborhoods, and a supplementary dataset including these is available here.
+
+```{r import and tidy zipcodes}
+zipcodes = 
+  read_csv("./zip codes.csv") |>
+  janitor::clean_names()
+```
+
+```{r import and tidy COA}
+coa = 
+  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx") |>
+  janitor::clean_names()
+```
