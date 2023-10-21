@@ -20,14 +20,24 @@ In each sheet, the TOTAL PERM IN and TOTAL PERM OUT indicate the total number of
 
 NYC is divided into five boroughs. Each of these boroughs is it’s own county, and in some cases the borough name and county name differ; for example, Manhattan is New York County. Moreover, boroughs are divided into neighborhoods. COA data provided by USPS may not accurately reflect NYC’s counties, boroughs, and neighborhoods, and a supplementary dataset including these is available here.
 
-```{r import and tidy zipcodes}
+```{r import and tidy zipcodes, warning=FALSE}
 zipcodes = 
   read_csv("./zip codes.csv") |>
-  janitor::clean_names()
+  janitor::clean_names() |>
+  mutate(
+    borough = recode(county_name, 
+                     "Bronx" = "The Bronx",
+                     "Kings" = "Brooklyn",
+                     "New York" = "Manhattan",
+                     "Richmond" = "Staten Island")
+)
 ```
 
 ```{r import and tidy COA}
 coa = 
   readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx") |>
-  janitor::clean_names()
+  janitor::clean_names() |> 
+  separate(month, into = c("year", "month_num", "day"), convert = TRUE)
 ```
+
+Also, create a net_change variable by subtracting outbound COAs from inbound COAs. 
