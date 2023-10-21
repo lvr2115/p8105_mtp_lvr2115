@@ -14,6 +14,8 @@ library(dplyr)
 
 # Introduction
 
+##Problem 1
+
 ### These data are from Change of Address (COAs) forms received by the United States Post Office in New York City between 2018 and 2022. It includes the total number of COAs to and from each NYC zip code for each month of those 5 years.  These COAs are filed by people who are moving to ensure that mail is delivered to their new address.
 
 In each sheet, the TOTAL PERM IN and TOTAL PERM OUT indicate the total number of permanent address changes going into and out of each ZIP code.
@@ -33,7 +35,7 @@ zipcodes =
 )
 ```
 
-```{r import and tidy COA}
+```{r import and tidy COAs}
 coa_2018 = 
   readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2018") |> #import dataset
   janitor::clean_names() |> #clean var names
@@ -70,8 +72,60 @@ coa_2022 =
     net_change = total_perm_in - total_perm_out) #Create net_change var 
 ```
 
-```{r}
+```{r combine COAs }
 combined_coa =
-	bind_rows(coa_2018, coa_2019, coa_2020,coa_2021,coa_2022)
+	bind_rows(coa_2018, coa_2019, coa_2020,coa_2021,coa_2022) |>
+  rename("zip_code"="zipcode") |> #combine COA data from all sheets belonging to different years
+
 ```
+
+```{r merge COA with zipcode data}
+merged_coazips = 
+  left_join(zipcodes, combined_coa, by="zip_code") |> #merge COA with zipcode datasets 
+  select(everything(), -county_name, -state_fips, -file_date, -day, -starts_with("county")) 
+
+str(merged_coazips) 
+```
+
+The combined COA dataset  `combined_coa` has `r nrow(combined_coa)` observations and `r ncol(combined_coa)` variables and tells us about the total perm in and total perm out and net change in COAs for a given year from years `r combined_coa |> pull(year) |> min()` to `r combined_coa |> pull(year) |> max()`. 
+
+In the merged dataset total, there are `r merged_coazips |> select(zip_code) |> distinct() |> count()` zipcodes found and  `r merged_coazips |> select(neighborhood) |> distinct() |> count()` unique neighborhoods. 
+
+This table shows the most common values of city in the borough of Manhattan.
+
+```{r}
+merged_coazips |> 
+  filter(borough %in% c("Manhattan")) |>
+  group_by(borough) |> 
+  count(city) |> 
+  mutate(rank = min_rank(desc(n))) |> 
+  arrange(desc(n)) |>
+  knitr::kable()
+```
+
+This table shows the most common values of city in the borough of Queens.
+
+```{r}
+merged_coazips |> 
+  filter(borough %in% c("Queens")) |>
+  group_by(borough) |> 
+  count(city) |> 
+  mutate(rank = min_rank(desc(n))) |> 
+  arrange(desc(n)) |>
+  knitr::kable()
+```
+
+There are 60 months between 2018 and 2022, but many ZIP codes have fewer than 60 observations; most of these are also missing neighborhood values. Discuss why this might be the case, using a few concrete examples as illustration. 
+
+##Problem 2
+
+This table shows the average of net_change in each borough and year. 
+
+```{r}
+merged_coazips |>
+  group_by(borough, year, net_change) |>
+  summarize(mean_net_change = mean(net_change)) |>
+  knitr::kable(digits = 2)
+```
+
 
