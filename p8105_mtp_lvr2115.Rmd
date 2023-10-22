@@ -12,14 +12,11 @@ library(dplyr)
 ```
 
 # Introduction
+The data being imported and cleaned are from Change of Address (COAs) forms received by the United States Post Office in New York City between 2018 and 2022. They include the total number of COAs to and from each NYC zip code for each month of those 5 years.  These COAs are filed by people who are moving to ensure that mail is delivered to their new address. There is another dataset being worked on that includes zipcode, neighborhood, and county data for New York City. 
 
-##Problem 1
+## Problem 1
 
-### These data are from Change of Address (COAs) forms received by the United States Post Office in New York City between 2018 and 2022. It includes the total number of COAs to and from each NYC zip code for each month of those 5 years.  These COAs are filed by people who are moving to ensure that mail is delivered to their new address.
-
-In each sheet, the TOTAL PERM IN and TOTAL PERM OUT indicate the total number of permanent address changes going into and out of each ZIP code.
-
-NYC is divided into five boroughs. Each of these boroughs is it’s own county, and in some cases the borough name and county name differ; for example, Manhattan is New York County. Moreover, boroughs are divided into neighborhoods. COA data provided by USPS may not accurately reflect NYC’s counties, boroughs, and neighborhoods, and a supplementary dataset including these is available here.
+Given that in some cases the borough name and the county name differ, a dataset with neighborhood data called `zipcodes` is imported and tidied. A new variable `borough` is created in this dataset to accurately reflect where borough each zipcode is located in. 
 
 ```{r import and tidy zipcodes, warning=FALSE}
 zipcodes = 
@@ -33,6 +30,8 @@ zipcodes =
                      "Richmond" = "Staten Island") #create borough var based on county
 )
 ```
+
+Given that the data from COAs for each year is in a different Excel sheet, each sheet is exported and cleaned before being combined via `bind_rows` into a dataset called `combined_coa`. Variables `total_perm_in` and `total_perm_out`indicate the total number of permanent address changes going into and out of each zip code, respectively. A new variable called `net_change`is created in each annual dataset that subtracts each `total_perm_out` from each `total_perm_in` value to reflect the increase or decrease in COAs that month and year. Additionally, a `year` variable is created by separating `month` into year, number of the corresponding month, and day. 
 
 ```{r import and tidy COAs}
 coa_2018 = 
@@ -71,12 +70,15 @@ coa_2022 =
     net_change = total_perm_in - total_perm_out) #Create net_change var 
 ```
 
+Then, all of the annual datasets for COAs data from years 2018 and 2022 were bound together and the variable `zipcode` was re-named to `zip_code` to match `zipcodes` and allow for merging. 
+
 ```{r combine COAs }
 combined_coa =
 	bind_rows(coa_2018, coa_2019, coa_2020,coa_2021,coa_2022) |>
-  rename("zip_code"="zipcode") |> #combine COA data from all sheets belonging to different years
-
+  rename("zip_code"="zipcode") #combine COA data from all sheets belonging to different years
 ```
+
+Merging  `combined_coa` with  `zipcodes`:
 
 ```{r merge COA with zipcode data}
 merged_coazips = 
@@ -86,7 +88,7 @@ merged_coazips =
 str(merged_coazips) 
 ```
 
-The combined COA dataset  `combined_coa` has `r nrow(combined_coa)` observations and `r ncol(combined_coa)` variables and tells us about the total perm in and total perm out and net change in COAs for a given year from years `r combined_coa |> pull(year) |> min()` to `r combined_coa |> pull(year) |> max()`. 
+The final tidy dataset  `merged_coazips` has `r nrow(merged_coazips)` observations and `r ncol(merged_coazips)` variables and tells us about the net change in COAs for a given year from years 2018 to 2022. 
 
 In the merged dataset total, there are `r merged_coazips |> select(zip_code) |> distinct() |> count()` zipcodes found and  `r merged_coazips |> select(neighborhood) |> distinct() |> count()` unique neighborhoods. 
 
@@ -116,7 +118,7 @@ merged_coazips |>
 
 There are 60 months between 2018 and 2022, but many ZIP codes have fewer than 60 observations; most of these are also missing neighborhood values. Discuss why this might be the case, using a few concrete examples as illustration. 
 
-##Problem 2
+## Problem 2
 
 This table shows the average of net_change in each borough and year. 
 
@@ -145,6 +147,7 @@ merged_coazips |>
   arrange(desc(net_change)) |>
   knitr::kable()
 ```
+
 This plot shows neighborhood-level average net_change values (i.e. averaging across ZIP codes within neighborhoods) against month over all five years. Your plot should facilitate comparisons across boroughs.
 
 ```{r}
@@ -152,6 +155,7 @@ merged_coazips |>
   group_by(neighborhood) |>
   mutate(
     mean_netchange = mean(net_change, na.rm = TRUE)) |> 
-  ggplot(aes(x = month_num, y = centered_netchange, color = borough)) 
+  ggplot(aes(x = month_num, y = mean_netchange, color = borough)) +
+  geom_point()
 ```
 
