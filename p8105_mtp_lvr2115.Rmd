@@ -6,7 +6,7 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 library(tidyverse)
 library(dplyr)
 ```
@@ -31,58 +31,70 @@ zipcodes =
 )
 ```
 
-Given that the data from COAs for each year is in a different Excel sheet, each sheet is exported and cleaned before being combined via `bind_rows` into a dataset called `combined_coa`. Variables `total_perm_in` and `total_perm_out`indicate the total number of permanent address changes going into and out of each zip code, respectively. A new variable called `net_change`is created in each annual dataset that subtracts each `total_perm_out` from each `total_perm_in` value to reflect the increase or decrease in COAs that month and year. Additionally, a `year` variable is created by separating `month` into year, number of the corresponding month, and day. 
+Given that the data from COAs for each year is in a different Excel sheet, each sheet is exported and cleaned before being combined via `bind_rows` into a dataset called `combined_coa`. Variables `total_perm_in` and `total_perm_out`indicate the total number of permanent address changes going into and out of each zip code, respectively. `month_num` is renamed as `month`. Additionally, a `year` variable is created by separating `month` into year, number of the corresponding month, and day. 
 
 ```{r import and tidy COAs}
 coa_2018 = 
   readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2018") |> #import dataset
   janitor::clean_names() |> #clean var names
-  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> #create year var
-   mutate(
-    net_change = total_perm_in - total_perm_out) #Create net_change var 
-
+  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> 
+  rename(month = month_num) #create year var
+  
 coa_2019 = 
   readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2019") |> #import dataset
   janitor::clean_names() |> #clean var names
-  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> #create year var
-   mutate(
-    net_change = total_perm_in - total_perm_out) #Create net_change var 
-
+  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> 
+  rename(month = month_num) #create year var
+   
 coa_2020 = 
   readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2020") |> #import dataset
   janitor::clean_names() |> #clean var names
-  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> #create year var
-   mutate(
-    net_change = total_perm_in - total_perm_out) #Create net_change var 
+  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> 
+  rename(month = month_num) #create year var
 
 coa_2021 = 
   readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2021") |> #import dataset
   janitor::clean_names() |> #clean var names
-  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> #create year var
-   mutate(
-    net_change = total_perm_in - total_perm_out) #Create net_change var 
+  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> 
+  rename(month = month_num) #create year var
 
 coa_2022 = 
   readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2022") |> #import dataset
   janitor::clean_names() |> #clean var names
-  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> #create year var
-   mutate(
-    net_change = total_perm_in - total_perm_out) #Create net_change var 
+  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> 
+  rename(month = month_num) #create year var
 ```
 
-Then, all of the annual datasets for COAs data from years 2018 and 2022 were bound together and the variable `zipcode` was re-named to `zip_code` to match `zipcodes` and allow for merging. 
+A new variable called `net_change`is created in each annual dataset that subtracts each `total_perm_out` from each `total_perm_in` value to reflect the increase or decrease in COAs that month and year. `month` is recoded as a factor variable and replaced with the names of each month instead of a number. Then, all of the annual datasets for COAs data from years 2018 and 2022 were bound together and `zipcode` was re-named to `zip_code` to match `zipcodes` and allow for merging. 
 
 ```{r combine COAs }
 combined_coa =
 	bind_rows(coa_2018, coa_2019, coa_2020,coa_2021,coa_2022) |>
-  rename("zip_code"="zipcode") #combine COA data from all sheets belonging to different years
+  rename("zip_code"="zipcode") |> 
+  mutate(
+  net_change = total_perm_in - total_perm_out, #Create net_change var 
+  month = case_match(month,
+      1 ~ "January",
+      2 ~ "February",
+      3 ~ "March",
+      4 ~ "April",
+      5 ~ "May",
+      6 ~ "June",
+      7 ~ "July",
+      8 ~ "August",
+      9 ~ "September",
+      10 ~ "October",
+      11 ~ "November",
+      12 ~ "December"),
+  month = as.factor(month) #recode month into month names
+)#combine COA data from all sheets belonging to different years
 ```
 
 Merging  `combined_coa` with  `zipcodes`:
 
 ```{r merge COA with zipcode data}
 merged_coazips = 
-  left_join(zipcodes, combined_coa, by="zip_code") |> #merge COA with zipcode datasets 
+  inner_join(zipcodes, combined_coa, by="zip_code") |> #merge COA with zipcode datasets 
   select(everything(), -county_name, -state_fips, -file_date, -day, -starts_with("county")) 
 
 str(merged_coazips) 
@@ -92,70 +104,80 @@ The final tidy dataset  `merged_coazips` has `r nrow(merged_coazips)` observatio
 
 In the merged dataset total, there are `r merged_coazips |> select(zip_code) |> distinct() |> count()` zipcodes found and  `r merged_coazips |> select(neighborhood) |> distinct() |> count()` unique neighborhoods. 
 
-This table shows the most common values of city in the borough of Manhattan.
+### This table shows the most common cities represented in the data from Manhattan. 
 
 ```{r}
 merged_coazips |> 
   filter(borough %in% c("Manhattan")) |>
-  group_by(borough) |> 
   count(city) |> 
   mutate(rank = min_rank(desc(n))) |> 
   arrange(desc(n)) |>
   knitr::kable()
 ```
 
-This table shows the most common values of city in the borough of Queens.
+### This table shows the most common cities represented in the data from Queens.
 
 ```{r}
 merged_coazips |> 
   filter(borough %in% c("Queens")) |>
-  group_by(borough) |> 
   count(city) |> 
   mutate(rank = min_rank(desc(n))) |> 
   arrange(desc(n)) |>
   knitr::kable()
 ```
+#?#
+Comment on the any data quality issues you observe. Everyones city of NYC.
 
 There are 60 months between 2018 and 2022, but many ZIP codes have fewer than 60 observations; most of these are also missing neighborhood values. Discuss why this might be the case, using a few concrete examples as illustration. 
+#?#
 
 ## Problem 2
 
-This table shows the average of net_change in each borough and year. 
+This table shows the average change in COAs in each borough and year. Across all boroughs, except Staten Island, the average change in COAs is the lowest in 2020, showing that there were significantly more changes of 
 
 ```{r}
 merged_coazips |>
-  group_by(year, borough) |>
+  group_by(borough, year) |>
   summarize(mean_net_change = mean(net_change)) |>
+  pivot_wider(
+    names_from = year,
+    values_from = mean_net_change
+  ) |>
   knitr::kable(digits = 2)
 ```
 
-This table shows, across all observed data, the five lowest values of net_change. This table should include ZIP code, neighborhood, and the year and month.
+This table shows, across all observed data, the five lowest values of net_change, including ZIP code, neighborhood, and the year and month.
+
 ```{r}
 merged_coazips |>
-  group_by(zip_code) |>
-  filter(min_rank(net_change) < 6) |>
   arrange(net_change) |>
+  slice(1:5) |>
+  select(zip_code, neighborhood, month, year, net_change) |>
   knitr::kable()
 ```
 
-This table shows, across data observed before 2020, the five highest values of net_change. This table should include ZIP code, neighborhood, and the year and month.
+This table shows, across data observed before 2020, the five highest values of net_change, including ZIP code, neighborhood, and the year and month.
 
 ```{r}
 merged_coazips |>
   filter(year < 2020) |>
-  group_by(net_change, zip_code) |>
   arrange(desc(net_change)) |>
+  slice(1:5) |>
+  select(zip_code, neighborhood, month, year, net_change) |>
   knitr::kable()
 ```
 
-This plot shows neighborhood-level average net_change values (i.e. averaging across ZIP codes within neighborhoods) against month over all five years. Your plot should facilitate comparisons across boroughs.
+This plot shows neighborhood-level average net_change values (i.e. averaging across ZIP codes within neighborhoods) against month over all five years. Your plot should facilitate comparisons across boroughs. Will this work? OR no? 
 
 ```{r}
-merged_coazips |>
-  group_by(neighborhood) |>
-  mutate(
-    mean_netchange = mean(net_change, na.rm = TRUE)) |> 
-  ggplot(aes(x = month_num, y = mean_netchange, color = borough)) +
-  geom_point()
-```
+neighborhood_avg =
+  merged_coazips |> 
+  group_by(borough, neighborhood, month) |> 
+  summarize(avg_net_change = mean(net_change, na.rm = TRUE))
 
+neighborhood_avg |> 
+  ggplot(aes(x = month, y = avg_net_change, color = borough)) + 
+  geom_line() +
+  labs(x = "Month", y = "Average Net Change", title = "Neighborhood-Level Average Net Change Over Time") +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1)) 
+```
