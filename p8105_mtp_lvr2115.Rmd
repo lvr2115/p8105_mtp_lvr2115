@@ -12,11 +12,11 @@ library(dplyr)
 ```
 
 # Introduction
-The Excel file 'USPS Change of Address NYC' contains Change of Address (COAs) forms received by USPS in NYC between 2018 and 2022. They include the total number of COAs to and from each NYC zip code for each month of those 5 years. The goal of this report is to import and tidy the data, and then complete some exploratory analysis and visualizations for it. 
+The file 'USPS Change of Address NYC' contains Change of Address (COAs) forms received by USPS in NYC between 2018 and 2022. They include the total number of COAs to and from each NYC zip code for each month of those 5 years. The goal of this report is to import and tidy the data, and then complete some exploratory analysis and visualizations for it. 
 
 ## Problem-1
 
-`zipcodes` datafile is imported to clarify where borough and county names may differ. A new variable `borough` is created in this dataset to accurately reflect the borough each zipcode is located in. 
+`zipcodes` is imported to clarify where borough and county names may differ. `borough` is created in this dataset to accurately reflect the borough each zipcode is located in. 
 
 ```{r import and tidy zipcodes, warning=FALSE, show_col_types = FALSE}
 zipcodes = 
@@ -31,7 +31,7 @@ zipcodes =
 )
 ```
 
-Each sheet containing COA data from each year is exported and variable names cleaned. Variables `total_perm_in` and `total_perm_out`indicate the total number of permanent address changes going into and out of each zip code.
+Each sheet containing COA data from each year is exported and tidied. `total_perm_in` and `total_perm_out`indicate the total number of permanent address changes going into and out of each zip code.
 
 ```{r import and tidy COAs}
 coa_2018 = 
@@ -90,9 +90,9 @@ merged_coazips =
 str(merged_coazips) 
 ```
 
-The final tidy dataset `merged_coazips` has `r nrow(merged_coazips)` observations and `r ncol(merged_coazips)` variables and tells us about the net change in COAs for a given year from years 2018 to 2022. 
+`merged_coazips` has `r nrow(merged_coazips)` observations and `r ncol(merged_coazips)` variables and tells us about the net change in COAs from 2018 to 2022. 
 
-In the merged dataset total, there are `r merged_coazips |> select(zip_code) |> distinct() |> count()` zipcodes found and  `r merged_coazips |> select(neighborhood) |> distinct() |> count()` unique neighborhoods. 
+In the merged dataset, there are `r merged_coazips |> select(zip_code) |> distinct() |> count()` zipcodes and  `r merged_coazips |> select(neighborhood) |> distinct() |> count()` unique neighborhoods. 
 
 ### This table shows the most common cities represented in the data from Manhattan. 
 
@@ -106,7 +106,7 @@ merged_coazips |>
   knitr::kable()
 ```
 
-Manhattan is in New York City and everyone who selected Manhattan should have New York as its city. While its the most common city, 60 and 59 COAs have Bronx and Brookyln respectively as their city within Manhattan, which is not accurate. 
+While New York is the most common city, 60 and 59 COAs have Bronx and Brookyln respectively as their city within Manhattan, which is not accurate, since everyone who selected Manhattan should have New York as its city.
 
 ### This table shows the most common cities represented in the data from Queens.
 
