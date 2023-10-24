@@ -20,14 +20,14 @@ The Excel file 'USPS Change of Address NYC' contains Change of Address (COAs) fo
 
 ```{r import and tidy zipcodes, warning=FALSE, show_col_types = FALSE}
 zipcodes = 
-  read_csv("./zip codes.csv") |> #import dataset
-  janitor::clean_names() |> #clean var names
+  read_csv("./zip codes.csv") |> 
+  janitor::clean_names() |> 
   mutate(
     borough = recode(county_name, 
                      "Bronx" = "The Bronx",
                      "Kings" = "Brooklyn",
                      "New York" = "Manhattan",
-                     "Richmond" = "Staten Island") #create borough var based on county
+                     "Richmond" = "Staten Island")
 )
 ```
 
@@ -35,24 +35,24 @@ Each sheet containing COA data from each year is exported and variable names cle
 
 ```{r import and tidy COAs}
 coa_2018 = 
-  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2018") |> #import dataset
-  janitor::clean_names() #clean var names
+  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2018") |> 
+  janitor::clean_names() 
   
 coa_2019 = 
-  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2019") |> #import dataset
-  janitor::clean_names()  #clean var names
+  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2019") |> 
+  janitor::clean_names()  
    
 coa_2020 = 
-  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2020") |> #import dataset
-  janitor::clean_names() #clean var names
+  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2020") |> 
+  janitor::clean_names() 
 
 coa_2021 = 
-  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2021") |> #import dataset
-  janitor::clean_names() #clean var names
+  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2021") |> 
+  janitor::clean_names() 
 
 coa_2022 = 
-  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2022") |> #import dataset
-  janitor::clean_names() #clean var names
+  readxl::read_excel("./USPS CHANGE OF ADDRESS NYC.xlsx", sheet = "2022") |> 
+  janitor::clean_names() 
 ```
 
 `net_change`is created that subtracts each `total_perm_out` from each `total_perm_in` value to reflect the change in COAs that month and year. `month_num` is renamed as `month` and replaced with month names instead of numbers. `year` is created by separating `month` into year, name of month, and day. All of the annual COAs data were bound together using `bind_rows` into a dataset called `combined_coa`. `zipcode` was re-named to `zip_code` to match `zipcodes` and allow for merging. 
@@ -60,12 +60,12 @@ coa_2022 =
 ```{r combine COAs }
 combined_coa =
 	bind_rows(coa_2018, coa_2019, coa_2020,coa_2021,coa_2022) |> 
-  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> #create year variable
-  rename(month = month_num) |> #rename month 
-  rename("zip_code"="zipcode") |> #rename zipcode
+  separate(month, into = c("year", "month_num", "day"), convert = TRUE) |> 
+  rename(month = month_num) |> 
+  rename("zip_code"="zipcode") |> 
   mutate(
-  net_change = total_perm_in - total_perm_out, #Create net_change var 
-  month = case_match(month, #rename month variable with month names
+  net_change = total_perm_in - total_perm_out, 
+  month = case_match(month, 
       1 ~ "January",
       2 ~ "February",
       3 ~ "March",
@@ -78,13 +78,13 @@ combined_coa =
       10 ~ "October",
       11 ~ "November",
       12 ~ "December"),
-  month = as.factor(month) #recode as factor variable
+  month = as.factor(month)
 ) 
 ```
 
 ```{r merge COA with zipcode data}
 merged_coazips = 
-  inner_join(zipcodes, combined_coa, by="zip_code") |> #merge COA with zipcode datasets 
+  inner_join(zipcodes, combined_coa, by="zip_code") |> 
   select(everything(), -county_name, -state_fips, -file_date, -day, -starts_with("county")) 
 
 str(merged_coazips) 
@@ -150,7 +150,7 @@ merged_coazips |>
   knitr::kable(digits = 2)
 ```
 
-This table shows the five lowest values of average change in COAs. The zipcodes are all in Gramercy Park/Murray Hill and the Lower East Side. These experienced the highest number of move-outs relative to move-ins. These are all at the onset of the COVID-19 pandemic between May-July 2020.  
+The zipcodes are all in Gramercy Park/Murray Hill and the Lower East Side. These experienced the highest number of move-outs relative to move-ins. These are all at the onset of the COVID-19 pandemic between May-July 2020.  
 
 ```{r}
 merged_coazips |>
@@ -160,7 +160,7 @@ merged_coazips |>
   knitr::kable()
 ```
 
-This table shows the five highest values of average change in COAs before 2020, showing neighborhoods that experienced the most move-ins relative to move-outs. These highest values are in April-July 2018 and range from neighborhoods in Queens, Manhattan and Brookyln. 
+This table shows neighborhoods that experienced the most move-ins relative to move-outs before 2020. These highest values are in April-July 2018 and range from neighborhoods in Queens, Manhattan and Brookyln. 
 
 ```{r}
 merged_coazips |>
