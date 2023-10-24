@@ -12,13 +12,13 @@ library(dplyr)
 ```
 
 # Introduction
-The data are from Change of Address (COAs) forms received by USPS in NYC between 2018 and 2022. They include the total number of COAs to and from each NYC zip code for each month of those 5 years.  These COAs are filed by people who are moving to ensure that mail is delivered to their new address. The goal of this report is to import and tidy the data, and then complete some exploratory analysis and visualizations for it. 
+The Excel file 'USPS Change of Address NYC' contains Change of Address (COAs) forms received by USPS in NYC between 2018 and 2022. They include the total number of COAs to and from each NYC zip code for each month of those 5 years. The goal of this report is to import and tidy the data, and then complete some exploratory analysis and visualizations for it. 
 
 ## Problem-1
 
-A dataset with neighborhood data called `zipcodes` is imported to clarify where borough and county names may differ. A new variable `borough` is created in this dataset to accurately reflect the borough each zipcode is located in. 
+`zipcodes` datafile is imported to clarify where borough and county names may differ. A new variable `borough` is created in this dataset to accurately reflect the borough each zipcode is located in. 
 
-```{r import and tidy zipcodes, warning=FALSE}
+```{r import and tidy zipcodes, warning=FALSE, show_col_types = FALSE}
 zipcodes = 
   read_csv("./zip codes.csv") |> #import dataset
   janitor::clean_names() |> #clean var names
@@ -55,7 +55,7 @@ coa_2022 =
   janitor::clean_names() #clean var names
 ```
 
-A new variable called `net_change`is created that subtracts each `total_perm_out` from each `total_perm_in` value to reflect the increase or decrease in COAs that month and year. `month_num` is renamed as `month`, recoded as a factor variable and replaced with month names. Variable `year` is created by separating `month` into year, name of month, and day. Then, all of the annual COAs data from years 2018 and 2022 were bound together using `bind_rows` into a dataset called `combined_coa`. `zipcode` was re-named to `zip_code` to match `zipcodes` and allow for merging. 
+`net_change`is created that subtracts each `total_perm_out` from each `total_perm_in` value to reflect the change in COAs that month and year. `month_num` is renamed as `month` and replaced with month names instead of numbers. `year` is created by separating `month` into year, name of month, and day. All of the annual COAs data were bound together using `bind_rows` into a dataset called `combined_coa`. `zipcode` was re-named to `zip_code` to match `zipcodes` and allow for merging. 
 
 ```{r combine COAs }
 combined_coa =
@@ -122,8 +122,18 @@ merged_coazips |>
  
 Jamaica, Flushing, and Astoria are the top 3 cities represented in Brookyln COAs. These are all neighborhoods within the borough, not cities, and are not accurate data points.
 
-# There are 60 months between 2018 and 2022, but many ZIP codes have fewer than 60 observations; most of these are also missing neighborhood values. Discuss why this might be the case, using a few concrete examples as illustration. 
+### These are the zipcodes with less than 60 observations, most of which are also missing neighborhood values. 
 
+This may be the case because some COAs may not include neighborhood as many individuals would choose to leave it blank. There may be not be 12 observations for a given neighborhood every year if no COA forms are submitted on a given month of the year. 
+
+```{r} 
+#These are the zipcodes with less than 60 observations, most of which are also missing neighborhood values. 
+merged_coazips |>
+  group_by(zip_code, neighborhood) |>
+  summarize(n_obs = n()) |>
+  filter(n_obs<60) |>
+  arrange(desc(n_obs))
+```
 
 ## Problem-2
 
@@ -140,7 +150,7 @@ merged_coazips |>
   knitr::kable(digits = 2)
 ```
 
-This table shows the five lowest values of average change in COAs and they are all negative values. The zipcodes are all in the neighborhoods Gramercy Park/Murray Hill and the Lower East Side. These experienced the highest number of move-outs relative to move-ins. These are all at the onset of the COVID-19 pandemic between May-July 2020.  
+This table shows the five lowest values of average change in COAs. The zipcodes are all in Gramercy Park/Murray Hill and the Lower East Side. These experienced the highest number of move-outs relative to move-ins. These are all at the onset of the COVID-19 pandemic between May-July 2020.  
 
 ```{r}
 merged_coazips |>
@@ -180,7 +190,6 @@ neighborhood_avg_plot |>
     title = "Neighborhood-Level Average Net Change Over Time"
   ) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-
 ```
 
-# Zip-code level data may not be truly representative of population changes as zipcodes represent more than one neighborhood at times, which may have different population changes. 
+Zip-code level data may not be truly representative of population changes as zipcodes represent more than one neighborhood, which may have different trends. Zip code lines may also changed over time, which affects how we compare changes from year to year. 
